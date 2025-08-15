@@ -11,9 +11,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: ${{ secrets.DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.DB_NAME }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: raincast
         ports: ["5432:5432"]
         options: >-
           --health-cmd="pg_isready -U ${{ secrets.DB_USER }}"
@@ -61,4 +61,4 @@ jobs:
           python manage.py migrate --noinput
 
       - name: Run tests
-        run: pytest -vv -ra
+        run: pytest -q
