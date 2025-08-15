@@ -1,0 +1,14 @@
+{
+  "database": {
+    "ENGINE": "django.db.backends.postgresql",
+    "NAME": "raincast",
+    "USER": "raincast_user",
+    "PASSWORD": "raincast123",
+    "HOST": "localhost",
+    "PORT": 5432
+  },
+  "weather_api": {
+    "base_url": "http://api.weatherapi.com/v1",
+    "key": "99ae016b45014c2397b183353251408"
+  }
+}

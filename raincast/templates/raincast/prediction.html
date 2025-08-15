@@ -1,0 +1,143 @@
+{% extends "accounts/base.html" %}
+{% block title %}RainCast · Prediction{% endblock %}
+{% block body_class %}{{ bg_class|default:"bg-neutral" }}{% endblock %}
+
+{% block head %}
+<style>
+  .form-actions { margin-top: 12px; }
+
+  .results {
+    margin-top: 18px;
+    text-align: center;
+  }
+  .results h3 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    line-height: 1.3;
+  }
+  .badge {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .badge-yes { background: #10b98122; color: #065f46; border: 1px solid #10b98155; }
+  .badge-no  { background: #e5e7eb;   color: #374151; border: 1px solid #d1d5db; }
+
+  .stats {
+    margin: 10px auto 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    max-width: 320px;
+  }
+  .stats li { margin: 6px 0; }
+  .label { color: var(--muted); }
+
+  .meter {
+    height: 8px; border-radius: 999px; background: #e5e7eb;
+    margin: 6px 0 2px;
+    overflow: hidden;
+  }
+  .meter > span { display: block; height: 100%; background: #10b981; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <h1 class="title">Prediction</h1>
+
+  {% if form and form.errors %}
+    <div class="errors-global">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post" id="predict-form" novalidate>
+    {% csrf_token %}
+
+    <div class="field">
+      <label for="location">Location</label>
+      <input id="location" name="location" list="location-suggestions" autocomplete="off" required />
+      <datalist id="location-suggestions"></datalist>
+      {{ form.location.errors }}
+    </div>
+
+    <div class="field">
+      <label for="date_">Date</label>
+      <input id="date_" name="date_" type="date" required />
+      {{ form.date_.errors }}
+    </div>
+
+    <input type="hidden" id="lat" name="lat" />
+    <input type="hidden" id="lon" name="lon" />
+
+    <div class="form-actions">
+      <button type="submit" class="btn">Check</button>
+    </div>
+  </form>
+
+  {% if submitted %}
+    <div class="results">
+      <h3>Result for {{ resolved_label|default:cleaned.location }} on {{ cleaned.date_ }}</h3>
+
+      {% if forecast %}
+        <div class="badge {% if forecast.will_rain %}badge-yes{% else %}badge-no{% endif %}">
+          {% if forecast.will_rain %}Rain: Yes{% else %}Rain: No{% endif %}
+        </div>
+
+        <div class="meter"><span style="width: {{ forecast.chance }}%"></span></div>
+        <div class="label">{{ forecast.chance }}% chance of rain</div>
+
+        <ul class="stats">
+          <li><strong>Total precip (mm):</strong> {{ forecast.precip_mm }}</li>
+          <li><strong>Condition:</strong> {{ forecast.condition }}</li>
+        </ul>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="helper" style="margin-top: 12px;">
+    <a href="{% url 'home' %}">Back home</a>
+  </div>
+
+  <script>
+    (function () {
+      const input = document.getElementById('location');
+      const datalist = document.getElementById('location-suggestions');
+      const latEl = document.getElementById('lat');
+      const lonEl = document.getElementById('lon');
+      let t = null;
+
+      input.addEventListener('input', function () {
+        latEl.value = ''; lonEl.value = '';
+        const q = input.value.trim();
+        clearTimeout(t);
+        if (!q) { datalist.innerHTML=''; return; }
+        t = setTimeout(() => fetchSuggestions(q), 250);
+      });
+
+      input.addEventListener('change', function () {
+        const value = input.value.trim();
+        const match = Array.from(datalist.options).find(o => o.value === value);
+        latEl.value = match?.dataset.lat || '';
+        lonEl.value = match?.dataset.lon || '';
+      });
+
+      async function fetchSuggestions(q) {
+        try {
+          const res = await fetch(`/api/search_location/?q=${encodeURIComponent(q)}`, { credentials: 'same-origin' });
+          if (!res.ok) return;
+          const items = await res.json();
+          datalist.innerHTML = '';
+          (items || []).forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = [item.name, item.region, item.country].filter(Boolean).join(', ');
+            opt.dataset.lat = item.lat ?? '';
+            opt.dataset.lon = item.lon ?? '';
+            datalist.appendChild(opt);
+          });
+        } catch (e) { console.error(e); }
+      }
+    })();
+  </script>
+{% endblock %}

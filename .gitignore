@@ -1,0 +1,12 @@
+__pycache__/*
+
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+
+venv/*
+
+# Tests & coverage
+.pytest_cache/*
+

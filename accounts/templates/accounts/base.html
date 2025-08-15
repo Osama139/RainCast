@@ -1,0 +1,102 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{% block title %}RainCast{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #8fd3f4;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #10b981;
+      --primary-hover: #0ea371;
+      --danger: #b91c1c;
+      --radius: 12px;
+      --shadow: 0 10px 25px rgba(0,0,0,.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+    .card {
+      width: 420px;
+      max-width: calc(100vw - 2rem);
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .title {
+      margin: 0 0 18px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .field { margin: 10px 0 14px; }
+    .field label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96,165,250,.25);
+    }
+    .btn {
+      width: 100%;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .helper {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    /* Django default error lists */
+    .errorlist {
+      list-style: none;
+      margin: 6px 0 0;
+      padding: 0;
+      color: var(--danger);
+      font-size: 14px;
+    }
+    .errors-global { color: var(--danger); margin-bottom: 10px; }
+
+    /* Background image variants (served from /static/img/...) */
+    .bg-neutral { background: url("{% static 'img/bg_neutral.jpg' %}") center/cover fixed no-repeat; }
+    .bg-sunny   { background: url("{% static 'img/bg_sunny.jpg' %}")   center/cover fixed no-repeat; }
+    .bg-cloudy  { background: url("{% static 'img/bg_cloudy.jpg' %}")  center/cover fixed no-repeat; }
+    .bg-rainy   { background: url("{% static 'img/bg_rainy.jpg' %}")   center/cover fixed no-repeat; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <main class="card">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

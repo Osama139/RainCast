@@ -1,0 +1,46 @@
+{% extends "accounts/base.html" %}
+{% block title %}RainCast · Home{% endblock %}
+{% block body_class %}bg-neutral{% endblock %}
+
+{% block head %}
+<style>
+  .actions {
+    display: flex;
+    justify-content: center;
+    margin: 22px 0 22px;
+  }
+  .btn-inline {
+    width: auto;
+    display: inline-block;
+    padding: 12px 18px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <h1 class="title">RainCast</h1>
+  <p style="text-align:center; margin: 6px 0 0; color: var(--muted);">
+    Quick rain forecasts to plan your day.
+  </p>
+
+  <div class="actions">
+    <a href="{% url 'prediction' %}" class="btn btn-inline">Check Forecast</a>
+  </div>
+
+  {% if user.is_authenticated %}
+    <div class="helper">
+      or
+      <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" style="background:none;border:0;color:#0f172a;cursor:pointer;">
+          Logout
+        </button>
+      </form>
+    </div>
+  {% else %}
+    <div class="helper">
+      <a href="{% url 'accounts:login' %}">Login</a> or
+      <a href="{% url 'accounts:signup' %}">Sign up</a>
+    </div>
+  {% endif %}
+{% endblock %}
