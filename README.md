@@ -98,7 +98,7 @@ Location Search API (JSON): /api/search_location/?q=<text>
 ```json
 { "q": "Lon" }
 
-curl -s "http://127.0.0.1:8000/api/search_location/?q=Lon"
+curl http://127.0.0.1:8000/api/search_location/?q=Lon
 
 Response (200 JSON):
 
@@ -130,8 +130,7 @@ Response (200 JSON):
   "lon": 67.01
 }
 
-curl -s \
-  "http://api.weatherapi.com/v1/forecast.json?key=$API_KEY&q=24.86,67.01&days=6&aqi=no&alerts=no"
+curl http://api.weatherapi.com/v1/forecast.json?key=$API_KEY&q=24.86,67.01&days=6&aqi=no&alerts=no
 
 Response (200 JSON):
 
