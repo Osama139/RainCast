@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import json
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,6 +21,23 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 with open(BASE_DIR / "conf" / "app_config.json") as f:
     APP_CONFIG = json.load(f)
+
+db = APP_CONFIG.get("database", {})
+db["ENGINE"] = os.getenv("DB_ENGINE", db.get("ENGINE", "django.db.backends.postgresql"))
+db["NAME"] = os.getenv("DB_NAME", db.get("NAME", "raincast"))
+db["USER"] = os.getenv("DB_USER", db.get("USER", "raincast_user"))
+db["PASSWORD"] = os.getenv("DB_PASSWORD", db.get("PASSWORD", "raincast123"))
+db["HOST"] = os.getenv("DB_HOST", db.get("HOST", "localhost"))
+db["PORT"] = int(os.getenv("DB_PORT", db.get("PORT", 5432)))
+
+weather = APP_CONFIG.get("weather_api", {})
+weather["key"] = os.getenv("WEATHER_API_KEY", weather.get("key", ""))
+weather["base_url"] = os.getenv("WEATHER_BASE_URL", weather.get("base_url", "http://api.weatherapi.com/v1"))
+
+APP_CONFIG["database"] = db
+APP_CONFIG["weather_api"] = weather
+
+DATABASES = {"default": db}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
