@@ -6,6 +6,8 @@ media/
 staticfiles/
 .idea/*
 venv/*
+.env
+raincast_key_pair.pem
 
 # Tests & coverage
 .pytest_cache/*
