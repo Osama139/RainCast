@@ -13,27 +13,30 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: raincast
+          POSTGRES_DB: postgres
         ports: ["5432:5432"]
         options: >-
-          --health-cmd="pg_isready -U ${{ secrets.DB_USER }}"
+          --health-cmd="pg_isready -U postgres"
           --health-interval=5s
           --health-timeout=5s
-          --health-retries=20
+          --health-retries=30
 
     env:
       DJANGO_SETTINGS_MODULE: config.settings
 
+      # Django reads these to override conf/app_config.json
       DB_ENGINE: ${{ secrets.DB_ENGINE }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USER: ${{ secrets.DB_USER }}
+      DB_NAME:   ${{ secrets.DB_NAME }}
+      DB_USER:   ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_HOST:   ${{ secrets.DB_HOST }}
+      DB_PORT:   ${{ secrets.DB_PORT }}
+
+      # Optional (only needed for live WeatherAPI tests)
       WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
 
-      PIP_DISABLE_PIP_VERSION_CHECK: 1
-      PYTHONDONTWRITEBYTECODE: 1
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
 
     steps:
       - name: Check out code
@@ -55,10 +58,35 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Django check & migrate
+      - name: Prepare database (create secret-based role & DB)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+          # Wait for the service to accept connections
+          until PGPASSWORD=postgres psql -h localhost -U postgres -c "SELECT 1" >/dev/null 2>&1; do
+            echo "Waiting for Postgres…"; sleep 1
+          done
+
+          # Create app role from secrets (with CREATEDB so Django can create test DB)
+          PGPASSWORD=postgres psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "DO \$\$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${DB_USER}') THEN
+              CREATE ROLE ${DB_USER} LOGIN PASSWORD '${DB_PASSWORD}' CREATEDB;
+            ELSE
+              ALTER ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASSWORD}' CREATEDB;
+            END IF;
+          END
+          \$\$;"
+
+          # Create app database owned by that role (if missing)
+          PGPASSWORD=postgres psql -h localhost -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" | grep -q 1 \
+            || PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
+
+      - name: Django check & migrate (sanity against the dev DB)
         run: |
           python manage.py check
-          python manage.py migrate --noinput
+          python.manage.py migrate --noinput
 
       - name: Run tests
-        run: pytest -q
+        run: pytest -vv -ra
