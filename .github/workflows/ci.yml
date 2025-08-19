@@ -86,7 +86,7 @@ jobs:
       - name: Django check & migrate (sanity against the dev DB)
         run: |
           python manage.py check
-          python.manage.py migrate --noinput
+          python manage.py migrate --noinput
 
       - name: Run tests
         run: pytest -vv -ra
