@@ -8,6 +8,7 @@ staticfiles/
 venv/*
 .env
 raincast_key_pair.pem
+*.pem
 
 # Tests & coverage
 .pytest_cache/*

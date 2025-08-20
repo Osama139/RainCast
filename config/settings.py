@@ -38,9 +38,13 @@ DATABASES = {"default": db}
 SECRET_KEY = "django-insecure-1u)*6@=v-j%7wug+1^53#z!t13y(32k=sgj4bvi!k*!=slq!fz"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = (
+    ["localhost", "127.0.0.1"]
+    if DEBUG
+    else os.getenv("ALLOWED_HOSTS", "3.90.44.164").split(",")
+)
 
 
 # Application definition
