@@ -7,7 +7,9 @@ on:
 
 jobs:
   deploy:
+    name: Deploy to EC2
     runs-on: ubuntu-latest
+    needs: [ci]
 
     steps:
       # 1. Checkout code
@@ -24,7 +26,6 @@ jobs:
 
       # 3. Log in to Amazon ECR
       - name: Login to Amazon ECR
-        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       # 4. Log in to DockerHub
@@ -39,19 +40,21 @@ jobs:
         run: |
           docker build -t raincast:latest .
 
-      # 6. Tag image for ECR & DockerHub
+      # 6. Tag Docker images (FIXED)
       - name: Tag Docker images
         run: |
-          docker tag raincast:latest ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          # Tag for ECR
+          docker tag raincast:latest ${{ secrets.ECR_REGISTRY }}:latest
+          # Tag for DockerHub
           docker tag raincast:latest ${{ secrets.DOCKERHUB_USERNAME }}/raincast:latest
 
-      # 7. Push to ECR & DockerHub
-      - name: Push images
+      # 7. Push Docker images
+      - name: Push Docker images
         run: |
-          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
+          docker push ${{ secrets.ECR_REGISTRY }}:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/raincast:latest
 
-      # 8. Deploy to EC2 via SSH
+      # 8. Deploy on EC2 via SSH
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -60,9 +63,12 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ec2-user/Raincast
+
+            # Log in to ECR from EC2 instance
             aws ecr get-login-password --region us-east-1 | \
               docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
 
+            # Pull and restart containers
             docker compose pull
-            docker compose up -d
+            docker compose up -d --remove-orphans
             docker image prune -f
