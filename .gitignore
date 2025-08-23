@@ -12,4 +12,18 @@ raincast_key_pair.pem
 
 # Tests & coverage
 .pytest_cache/*
-.github/*
+
+Dockerfile
+docker-compose.yml
+
+# Docker artifacts
+*.log
+*.pid
+*.db
+CACHED
+naming
+exporting
+transferring
+writing
+[web]
+[web
