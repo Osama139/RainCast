@@ -6,7 +6,7 @@ media/
 staticfiles/
 .idea/*
 venv/*
-.env
+.env.dev
 raincast_key_pair.pem
 *.pem
 

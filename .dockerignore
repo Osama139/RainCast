@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Env files
+.env.dev
+*.env
+
+# Local development
+.vscode/
+*.sqlite3
+*.log
+
+# Python virtual environment
+venv/
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Static collection (optional if you're storing externally)
+staticfiles/
