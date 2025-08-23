@@ -1,10 +1,17 @@
-name: CI
+name: CI/CD
+
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
-  test:
+  # ----------------
+  # CI JOB - Run tests
+  # ----------------
+  ci:
+    name: Run Tests
     runs-on: ubuntu-latest
 
     services:
@@ -23,18 +30,13 @@ jobs:
 
     env:
       DJANGO_SETTINGS_MODULE: config.settings
-
-      # Django reads these to override conf/app_config.json
       DB_ENGINE: ${{ secrets.DB_ENGINE }}
-      DB_NAME:   ${{ secrets.DB_NAME }}
-      DB_USER:   ${{ secrets.DB_USER }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_HOST:   ${{ secrets.DB_HOST }}
-      DB_PORT:   ${{ secrets.DB_PORT }}
-
-      # Optional (only needed for live WeatherAPI tests)
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
       WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
-
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
       PYTHONDONTWRITEBYTECODE: "1"
 
@@ -63,12 +65,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-          # Wait for the service to accept connections
           until PGPASSWORD=postgres psql -h localhost -U postgres -c "SELECT 1" >/dev/null 2>&1; do
             echo "Waiting for Postgres…"; sleep 1
           done
 
-          # Create app role from secrets (with CREATEDB so Django can create test DB)
           PGPASSWORD=postgres psql -h localhost -U postgres -v ON_ERROR_STOP=1 -c "DO \$\$
           BEGIN
             IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${DB_USER}') THEN
@@ -79,7 +79,6 @@ jobs:
           END
           \$\$;"
 
-          # Create app database owned by that role (if missing)
           PGPASSWORD=postgres psql -h localhost -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" | grep -q 1 \
             || PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
 
@@ -90,3 +89,58 @@ jobs:
 
       - name: Run tests
         run: pytest -vv -ra
+
+  # ----------------
+  # CD JOB - Deploy to EC2
+  # ----------------
+  cd:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: ci   # ✅ Will only run if CI passes
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: docker build -t raincast:latest .
+
+      - name: Tag Docker images
+        run: |
+          docker tag raincast:latest ${{ secrets.ECR_REGISTRY }}:latest
+          docker tag raincast:latest ${{ secrets.DOCKERHUB_USERNAME }}/raincast:latest
+
+      - name: Push Docker images
+        run: |
+          docker push ${{ secrets.ECR_REGISTRY }}:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/raincast:latest
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/Raincast
+            aws ecr get-login-password --region us-east-1 | \
+              docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f
